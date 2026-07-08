@@ -1,4 +1,6 @@
-const TRANSACTIONS: Transaction[] = [
+import type { Transaction } from "../type";
+
+export const TRANSACTIONS: Transaction[] = [
 { id: 1, vendor: "Auntie Muni", type: "debit", amount: 25.0, time: "Today, 12:43 PM", icon: "🍛" },
 { id: 2, vendor: "MoMo Top Up", type: "credit", amount: 10.0, time: "Today, 9:00 AM", icon: "💸" },
 { id: 3, vendor: "Mama Efua Kitchen", type: "debit", amount: 18.5, time: "Yesterday, 7:30 PM", icon: "🍲" },
@@ -6,7 +8,7 @@ const TRANSACTIONS: Transaction[] = [
 { id: 5, vendor: "Kofi Brokeman", type: "debit", amount: 12.0, time: "Sun, 1:15 PM", icon: "🌯" },
 ];
 
-const ALL_TRANSACTIONS = [
+export const ALL_TRANSACTIONS = [
 { id: 1,  vendor: "Auntie Muni's Kitchen", label: "Food Order",   type: "debit"  as const, amount: 25.00, time: "Today, 12:43 PM",    icon: "🍛", status: "Delivered",  ref: "CW-8821" },
 { id: 2,  vendor: "MoMo Top Up",           label: "Wallet Top Up",type: "credit" as const, amount: 10.00, time: "Today, 9:00 AM",      icon: "💸", status: "Completed",  ref: "MT-4412" },
 { id: 3,  vendor: "Mama Efua Kitchen",     label: "Food Order",   type: "debit"  as const, amount: 18.50, time: "Yesterday, 7:30 PM",  icon: "🍲", status: "Delivered",  ref: "CW-8814" },

@@ -1,12 +1,12 @@
 import { useState } from "react";
-import {ArrowDownLeft,ArrowUpRight} from "lucide-react";
+import {ArrowDownLeft,ArrowUpRight} from "lucide-react-native";
 
 
-
+import { ALL_TRANSACTIONS } from "./data/transactions";
 
 type TxFilter = "All" | "Orders" | "Top Ups";
 
-function History() {
+export default function History() {
 const [filter, setFilter] = useState<TxFilter>("All");
 const [expanded, setExpanded] = useState<number | null>(null);
 

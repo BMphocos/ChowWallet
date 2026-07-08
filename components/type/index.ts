@@ -1,6 +1,6 @@
-type Screen = "dashboard" | "marketplace" | "history" | "profile";
+export type Screen = "dashboard" | "marketplace" | "history" | "profile";
 
-interface Transaction {
+export interface Transaction {
   id: number;
   vendor: string;
   type: "debit" | "credit";
@@ -9,7 +9,7 @@ interface Transaction {
   icon: string;
 }
 
-interface Vendor {
+export interface Vendor {
   id: number;
   name: string;
   cuisine: string;
@@ -22,7 +22,7 @@ interface Vendor {
   items: FoodItem[];
 }
 
-interface FoodItem {
+export interface FoodItem {
   id: number;
   name: string;
   price: number;

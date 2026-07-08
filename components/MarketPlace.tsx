@@ -1,10 +1,14 @@
 import { useState } from "react";
-import {Search,Flame,Leaf,ShoppingCart} from "lucide-react";
+import {Search,Flame,Leaf,ShoppingCart} from "lucide-react-native";
 
-import { VENDORS } from "../data/vendors";
-import { CATEGORIES } from "../data/categories";
+import { VENDORS } from "./data/vendors";
+import { CATEGORIES } from "./data/categories";
 
-function Marketplace({
+import { FeaturedCard, VendorCard } from "./VendorCard";
+
+
+
+export default function Marketplace({
   cart,
   cartTotal,
   cartCount,

@@ -1,4 +1,6 @@
-const VENDORS: Vendor[] = [
+import type { Vendor } from "../type";
+
+export const VENDORS: Vendor[] = [
   {
     id: 1,
     name: "Auntie Muni's Kitchen",
@@ -72,3 +74,6 @@ const VENDORS: Vendor[] = [
     ],
   },
 ];
+
+
+

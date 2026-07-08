@@ -1,46 +1,29 @@
+import { Clock, Home, LayoutGrid, User } from "lucide-react-native";
 import { useState } from "react";
-import {
-  Plus,
-  Utensils,
-  Search,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Bell,
-  ChevronRight,
-  Star,
-  ShoppingCart,
-  Home,
-  LayoutGrid,
-  Clock,
-  User,
-  Flame,
-  Leaf,
-  X,
-  Check,
-} from "lucide-react";
-
 
 import Dashboard from "../components/Dashboard";
-import Marketplace from "../components/Marketplace";
 import History from "../components/History";
+import Marketplace from "../components/MarketPlace";
 import Profile from "../components/Profile";
 import TopUpModal from "../components/TopUpModal";
 
-import { VENDORS } from "../data/vendors";
-import { TRANSACTIONS } from "../data/transactions";
-import { CATEGORIES } from "../data/categories";
+import { VENDORS } from "../components/data/vendors";
+import type { Screen } from "../components/type";
 
 // ─── App ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("Dashboard");
+  const [screen, setScreen] = useState<Screen>("dashboard");
+
   const [cart, setCart] = useState<Record<number, number>>({});
   const [topUpVisible, setTopUpVisible] = useState(false);
   const [topUpSuccess, setTopUpSuccess] = useState(false);
   const [balance, setBalance] = useState(75.0);
 
   const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
-    const item = VENDORS.flatMap((v) => v.items).find((i) => i.id === Number(id));
+    const item = VENDORS.flatMap((v) => v.items).find(
+      (i) => i.id === Number(id),
+    );
     return sum + (item?.price ?? 0) * qty;
   }, 0);
 
@@ -62,7 +45,12 @@ export default function App() {
   return (
     <div
       className="min-h-screen bg-background flex flex-col"
-      style={{ fontFamily: "'Poppins', sans-serif", maxWidth: 430, margin: "0 auto", position: "relative" }}
+      style={{
+        fontFamily: "'Poppins', sans-serif",
+        maxWidth: 430,
+        margin: "0 auto",
+        position: "relative",
+      }}
     >
       {screen === "dashboard" && (
         <Dashboard
@@ -80,7 +68,9 @@ export default function App() {
         />
       )}
       {screen === "history" && <History />}
-      {screen === "profile" && <Profile balance={balance} onTopUp={() => setTopUpVisible(true)} />}
+      {screen === "profile" && (
+        <Profile balance={balance} onTopUp={() => setTopUpVisible(true)} />
+      )}
 
       {/* Bottom Nav */}
       <nav className="sticky bottom-0 bg-card border-t border-border flex items-center justify-around py-3 px-4 z-30">
@@ -118,4 +108,3 @@ export default function App() {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-
