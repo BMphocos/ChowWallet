@@ -1,21 +1,91 @@
 // app/index.tsx
-import React, { useState } from 'react'; // 1. Import useState to track if popups are open
-import { View, Text, ScrollView, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react'; 
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  ScrollView, 
+  Alert, 
+  TouchableOpacity, 
+  Modal, 
+  StyleSheet, 
+  ActivityIndicator 
+} from 'react-native';
 import { styles } from './homeStyles';
+import { router } from 'expo-router';
+import axios from 'axios';
+
+
+const API_URL = 'http://192.168.100.11:8000/api/profile/';
 
 export default function Page() {
-  // 2. CREATE THE LIGHT SWITCHES (State Variables)
-  // These start as 'false', meaning the popups are hidden by default.
-  const [topUpVisible, setTopUpVisible] = useState(false);
-  const [successVisible, setSuccessVisible] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState('₵10');
+  // --- Core Wallet and Load Status States ---
+  const [walletBalance, setWalletBalance] = useState<number>(0.00);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const [activeOverlay, setActiveOverlay] = useState<'topup' | null>(null);
+  const [topUpInput, setTopUpInput] = useState('');
+
+  // 1. Fetch live profile balance from the vault on mount
+  useEffect(() => {
+    fetchWalletBalance();
+  }, []);
+
+  const fetchWalletBalance = () => {
+    axios.get(API_URL)
+      .then(res => {
+        const balance = res.data && res.data.wallet_balance ? parseFloat(res.data.wallet_balance) : 0.00;
+        setWalletBalance(balance);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Database sync failed on home view:", err);
+        setLoading(false);
+      });
+  };
+
+  // 2. Push Top Up requests directly into the PostgreSQL Database via Django
+  const handleTopUpSubmit = () => {
+    const amount = parseFloat(topUpInput);
+    if (!isNaN(amount) && amount > 0) {
+      axios.post(API_URL, { amount: amount })
+        .then(res => {
+          if (res.data && res.data.success) {
+            setWalletBalance(parseFloat(res.data.wallet_balance)); // Balance updates globally across views instantly
+            setTopUpInput('');
+            setActiveOverlay(null);
+            Alert.alert("Success", `₵${amount.toFixed(2)} synchronized to database.`);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          Alert.alert("Server Connection Error", "Could not verify financial balance with the vault.");
+        });
+    } else {
+      Alert.alert("Invalid Amount", "Please input a valid numeric sum to top up.");
+    }
+  };
 
   const transactions = [
     { id: '1', title: 'Auntie Muni', date: 'Today, 12:43 pm', amount: '-₵25.00', type: 'expense', icon: '🍲' },
     { id: '2', title: 'MoMo Top Up', date: 'Today, 12:43 pm', amount: '+₵10.00', type: 'income', icon: '💵' },
     { id: '3', title: 'Auntie Muni', date: 'Today, 12:43 pm', amount: '-₵18.50', type: 'expense', icon: '🍲' },
     { id: '4', title: 'MoMo Top Up', date: 'Today, 12:43 pm', amount: '+₵50.00', type: 'income', icon: '💵' },
+    { id: '5', title: "Auntie Muni's Kitchen", date: 'Today, 12:43 pm', amount: '-₵25.00', status: 'Delivered', type: 'expense', icon: '🍲' },
+    { id: '6', title: 'MoMo Top Up', date: 'Today, 12:43 pm', amount: '+₵10.00', status: 'Completed', type: 'income', icon: '💵' },
+    { id: '7', title: 'Mama Efua Kitchen', date: 'Today, 12:43 pm', amount: '-₵18.50', status: 'Delivered', type: 'expense', icon: '🍲' },
+    { id: '8', title: 'MoMo Top Up', date: 'Today, 9:00 am', amount: '+₵50.00', status: 'Completed', type: 'income', icon: '💵' },
   ];
+
+  // Prevent UI flashes or runtime NaN display while waiting for backend response
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#D97706" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Synchronizing currency records...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -44,7 +114,7 @@ export default function Page() {
           </View>
           <View style={styles.balanceContainer}>
             <Text style={styles.balanceLabel}>Current Balance</Text>
-            <Text style={styles.balanceAmount}>₵ 75.00</Text>
+            <Text style={styles.balanceAmount}>₵{walletBalance.toFixed(2)}</Text>
           </View>
           <View style={styles.cardFooter}>
             <View>
@@ -60,9 +130,8 @@ export default function Page() {
 
         {/* --- Quick Action Buttons --- */}
         <View style={styles.actionRow}>
-          {/* 3. FLIP THE SWITCH: Clicking this turns 'topUpVisible' to true, opening the popup */}
-          <TouchableOpacity style={styles.actionButton} onPress={() => setTopUpVisible(true)}>
-            <Text style={styles.actionButtonText}>+  Top Up Wallet</Text>
+          <TouchableOpacity style={modalStyles.topUpButton} onPress={() => setActiveOverlay('topup')}>
+            <Text style={modalStyles.topUpText}>+ Top Up</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
@@ -89,7 +158,9 @@ export default function Page() {
         {/* --- Recent Transactions Section --- */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          <Text style={styles.seeAllText}>see all &gt;</Text>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/history' as any)}>
+            <Text style={{ color: 'orange' }}>see all &gt;</Text>
+          </TouchableOpacity>
         </View>
 
         {transactions.map((tx) => (
@@ -106,192 +177,45 @@ export default function Page() {
         ))}
       </ScrollView>
 
-      {/* ========================================================= */}
-      {/* --- POPUP 1: SELECT TOP UP AMOUNT MODAL (Screenshot 5) --- */}
-      {/* ========================================================= */}
-      <Modal visible={topUpVisible} transparent animationType="fade">
-        <View style={modalStyles.overlayBackground}>
-          <View style={modalStyles.whiteCard}>
-            
-            {/* Close 'X' Button */}
-            <TouchableOpacity style={modalStyles.closeButton} onPress={() => setTopUpVisible(false)}>
-              <Text style={modalStyles.closeXText}>✕</Text>
-            </TouchableOpacity>
-            
-            <Text style={modalStyles.modalHeading}>Top Up Wallet</Text>
-            <Text style={modalStyles.modalSubheading}>Select an amount to add via MoMo</Text>
-            
-            {/* Amount Selection Blocks Grid */}
-            <View style={modalStyles.pillsGrid}>
-              {['₵10', '₵20', '₵50', '₵100'].map((amt) => (
-                <TouchableOpacity 
-                  key={amt} 
-                  style={[modalStyles.amtPill, selectedAmount === amt && modalStyles.selectedAmtPill]}
-                  onPress={() => setSelectedAmount(amt)}
-                >
-                  <Text style={[modalStyles.amtText, selectedAmount === amt && modalStyles.selectedAmtText]}>{amt}</Text>
-                </TouchableOpacity>
-              ))}
+      {/* --- Top Up Wallet Popup Overlay --- */}
+      <Modal visible={activeOverlay === 'topup'} transparent animationType="slide">
+        <View style={modalStyles.modalOverlay}>
+          <View style={modalStyles.modalContent}>
+            <Text style={modalStyles.modalTitle}>Top Up Wallet</Text>
+            <Text style={modalStyles.fieldLabel}>Enter Amount (₵)</Text>
+            <TextInput
+              style={modalStyles.formInput}
+              keyboardType="numeric"
+              placeholder="e.g. 50"
+              value={topUpInput}
+              onChangeText={setTopUpInput}
+            />
+            <View style={modalStyles.modalButtonGroup}>
+              <TouchableOpacity style={modalStyles.cancelBtn} onPress={() => setActiveOverlay(null)}>
+                <Text style={modalStyles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={modalStyles.submitBtn} onPress={handleTopUpSubmit}>
+                <Text style={modalStyles.submitBtnText}>Add Cash</Text>
+              </TouchableOpacity>
             </View>
-
-            {/* Pay Button */}
-            <TouchableOpacity 
-              style={modalStyles.orangePayBtn}
-              onPress={() => {
-                setTopUpVisible(false);       // Close Amount Selection popup
-                setSuccessVisible(true);      // Open Success popup!
-              }}
-            >
-              <Text style={modalStyles.orangePayBtnText}>Add {selectedAmount} via MoMo</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
-
-      {/* ========================================================= */}
-      {/* --- POPUP 2: TOP UP SUCCESS MODAL (Screenshot 6) ------- */}
-      {/* ========================================================= */}
-      <Modal visible={successVisible} transparent animationType="fade">
-        <View style={modalStyles.overlayBackground}>
-          <View style={[modalStyles.whiteCard, { alignItems: 'center', paddingVertical: 32 }]}>
-            
-            {/* Round Checkmark Circle Icon */}
-            <View style={modalStyles.checkmarkCircle}>
-              <Text style={modalStyles.checkmarkIcon}>✓</Text>
-            </View>
-            
-            <Text style={modalStyles.successHeaderTitle}>Top Up Successfull</Text>
-            <Text style={modalStyles.successBodyMessage}>{selectedAmount}.00 added to your wallet</Text>
-            
-            {/* Done Close Button */}
-            <TouchableOpacity style={modalStyles.doneBtn} onPress={() => setSuccessVisible(false)}>
-              <Text style={modalStyles.doneBtnText}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
     </View>
   );
 }
 
-// Styles specifically for handling popup layers
 const modalStyles = StyleSheet.create({
-  overlayBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)', // Dark dim effect overlay over your screen
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  whiteCard: {
-    width: '85%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    padding: 4,
-    zIndex: 5,
-  },
-  closeXText: {
-    fontSize: 14,
-    color: '#A1A1AA',
-    fontWeight: 'bold',
-  },
-  modalHeading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111',
-    textAlign: 'center',
-  },
-  modalSubheading: {
-    fontSize: 13,
-    color: '#71717A',
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 24,
-  },
-  pillsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  amtPill: {
-    width: '47%',
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 14,
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-  },
-  selectedAmtPill: {
-    borderColor: '#FF7A00',
-    backgroundColor: '#FFF8F0', // Slight light orange tint
-  },
-  amtText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1C1C1E',
-  },
-  selectedAmtText: {
-    color: '#FF7A00',
-  },
-  orangePayBtn: {
-    backgroundColor: '#FF7A00',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  orangePayBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  checkmarkCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FF7A00',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  checkmarkIcon: {
-    color: '#FFF',
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  successHeaderTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111',
-  },
-  successBodyMessage: {
-    fontSize: 14,
-    color: '#71717A',
-    marginTop: 6,
-    marginBottom: 28,
-  },
-  doneBtn: {
-    backgroundColor: '#FF7A00',
-    paddingHorizontal: 36,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  doneBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalContent: { backgroundColor: '#FFF', borderRadius: 16, width: '90%', padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#111', marginBottom: 15, textAlign: 'center' },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#444', marginBottom: 6, marginTop: 10 },
+  formInput: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, paddingHorizontal: 12, height: 40, fontSize: 14, color: '#333', marginBottom: 10, width: '100%' },
+  modalButtonGroup: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 15 },
+  cancelBtn: { paddingHorizontal: 16, paddingVertical: 10, marginRight: 10 },
+  cancelBtnText: { color: '#666', fontWeight: '600' },
+  submitBtn: { backgroundColor: '#D97706', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  submitBtnText: { color: '#FFF', fontWeight: 'bold' },
+  topUpButton: { backgroundColor: '#D97706', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  topUpText: { color: '#FFF', fontWeight: 'bold', fontSize: 14 }
 });

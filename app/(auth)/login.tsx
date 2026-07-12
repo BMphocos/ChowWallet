@@ -12,7 +12,7 @@ export default function LoginScreen() {
   return (
     // Replicates your candle-lit green background theme
     <ImageBackground 
-      source={{ uri: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop' }} 
+      source={{ uri: 'https://images.unsplash.com/photo-1618005182384-a83a8b57fbe?q=80&w=1000&auto=format&fit=crop' }} 
       style={styles.background}
       resizeMode="cover"
     >
@@ -91,23 +91,115 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1, width: Dimensions.get('window').width, height: Dimensions.get('window').height },
-  darkOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', paddingHorizontal: 24 },
-  mainTitle: { fontSize: 32, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#E4E4E7', textAlign: 'center', marginBottom: 30 },
-  formCard: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 24, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15, elevation: 8 },
-  inputLabel: { fontSize: 11, fontWeight: '700', color: '#4B5563', letterSpacing: 0.5, marginBottom: 6, marginTop: 14 },
-  inputField: { backgroundColor: '#F3F4F6', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, fontSize: 15, color: '#111', marginBottom: 4 },
-  eyeIconContainer: { position: 'absolute', right: 16, top: 14 },
-  rememberRow: { marginVertical: 12 },
-  rememberText: { color: '#71717A', fontSize: 13 },
-  orangeSubmitBtn: { backgroundColor: '#FF7A00', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-  orangeSubmitBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.5 },
-  footerRedirectRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  redirectLabel: { color: '#71717A', fontSize: 13 },
-  redirectLinkText: { color: '#FF7A00', fontWeight: 'bold', fontSize: 13 },
-  dividerText: { textStyle: 'center', textAlign: 'center', color: '#A1A1AA', marginVertical: 15, fontSize: 13 },
-  socialRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 10 },
-  socialIconCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
-  socialEmoji: { fontSize: 18 }
+  background: {
+    flex: 1,
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height
+  },
+  darkOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    paddingHorizontal: 24
+  },
+  mainTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFF',
+    textAlign: 'center',
+    marginBottom: 6
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#E4E4E7',
+    textAlign: 'center',
+    marginBottom: 30
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4B5563',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    marginTop: 14
+  },
+  inputField: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    fontSize: 15,
+    color: '#111',
+    marginBottom: 4
+  },
+  eyeIconContainer: {
+    position: 'absolute',
+    right: 16,
+    top: 14
+  },
+  rememberRow: {
+    marginVertical: 12
+  },
+  rememberText: {
+    color: '#71717A',
+    fontSize: 13
+  },
+  orangeSubmitBtn: {
+    backgroundColor: '#FF7A00',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 10 
+  },
+  orangeSubmitBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 15,
+    letterSpacing: 0.5 },
+  footerRedirectRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20
+  },
+  redirectLabel: {
+    color: '#71717A',
+    fontSize: 13
+  },
+  redirectLinkText: {
+    color: '#FF7A00',
+    fontWeight: 'bold',
+    fontSize: 13
+  },
+  dividerText: {
+    // textStyle: 'center',
+    textAlign: 'center',
+    color: '#A1A1AA',
+    marginVertical: 15,
+    fontSize: 13
+  },
+  socialRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 10
+  },
+  socialIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center' },
+  socialEmoji: {
+    fontSize: 18
+  }
 });

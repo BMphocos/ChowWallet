@@ -65,15 +65,70 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1, width: Dimensions.get('window').width, height: Dimensions.get('window').height },
-  scrollContainer: { flexGrow: 1 },
-  darkOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
-  mainTitle: { fontSize: 32, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#E4E4E7', textAlign: 'center', marginBottom: 24 },
-  formCard: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 24 },
-  redirectLinkText: { color: '#FF7A00', fontWeight: 'bold', fontSize: 13 },
-  inputLabel: { fontSize: 11, fontWeight: '700', color: '#4B5563', letterSpacing: 0.5, marginBottom: 4, marginTop: 12 },
-  inputField: { backgroundColor: '#F3F4F6', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, fontSize: 14, color: '#111' },
-  orangeSubmitBtn: { backgroundColor: '#FF7A00', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 24 },
-  orangeSubmitBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 15 }
+  background: {
+    flex: 1,
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height
+  },
+  scrollContainer: {
+  flexGrow: 1
+},
+  darkOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40
+  },
+  mainTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFF',
+    textAlign: 'center',
+    marginBottom: 6
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#E4E4E7',
+    textAlign: 'center',
+    marginBottom: 24
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 24
+  },
+  redirectLinkText: {
+    color: '#FF7A00',
+    fontWeight: 'bold',
+    fontSize: 13
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4B5563',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    marginTop: 12
+  },
+  inputField: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    fontSize: 14,
+    color: '#111'
+  },
+  orangeSubmitBtn: {
+    backgroundColor: '#FF7A00',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 24
+},
+  orangeSubmitBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 15
+  }
 });

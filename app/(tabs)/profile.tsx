@@ -1,134 +1,454 @@
-// app/profile.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Modal } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react'; // Fixed spacing here
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Switch, 
+  Modal, 
+  TextInput,
+  Alert,
+  ActivityIndicator // Added to handle the loading state gracefully
+} from 'react-native';
+import axios from 'axios';
+
+// --- TypeScript Interfaces for Core Profile States ---
+interface UserProfile {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+interface Address {
+  id: string;
+  label: string; 
+  details: string;
+}
+
+// NOTE: If using a real device, keep your IP. If using Android Emulator, change to 'http://10.0.2.2:8000/api/profile/'
+const API_URL = 'http://192.168.100.11:8000/api/profile/';
 
 export default function ProfileScreen() {
-  const router = useRouter();
-  const [pushEnabled, setPushEnabled] = useState(false);
-  const [bioEnabled, setBioEnabled] = useState(false);
+  // --- Global Profile States ---
+  const [walletBalance, setWalletBalance] = useState<number>(0.00);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // 1. ADD STATE FOR POPUPS
-  const [topUpVisible, setTopUpVisible] = useState(false);
-  const [successVisible, setSuccessVisible] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState('₵10');
+  useEffect(() => {
+    fetchBackendData();
+  }, []);
+
+  const fetchBackendData = () => {
+    axios.get(API_URL)
+      .then(res => {
+        // Ensures we fall back safely if data is missing or weirdly structured
+        const balance = res.data && res.data.wallet_balance ? parseFloat(res.data.wallet_balance) : 0.00;
+        setWalletBalance(balance);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Database connection error:", err);
+        setLoading(false);
+      });
+  };
+
+  const [profile, setProfile] = useState<UserProfile>({
+    name: 'Alfred Asante',
+    email: 'alfred.asante@st.ug.edu.gh',
+    phone: '0541234567',
+  });
+  
+  const [addresses, setAddresses] = useState<Address[]>([
+    { id: '1', label: 'Home', details: 'Block C, East Legon, Accra' },
+    { id: '2', label: 'Hostel', details: 'Pentagon Hall, UG Campus' },
+  ]);
+  
+  const [momoNumber, setMomoNumber] = useState('0244123412');
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [pushNotifications, setPushNotifications] = useState(false);
+  const [biometricLogin, setBiometricLogin] = useState(false);
+
+  // --- Modal Visibility Manager ---
+  const [activeOverlay, setActiveOverlay] = useState<'topup' | 'personal' | 'addresses' | 'momo' | 'language' | 'support' | 'terms' | null>(null);
+
+  // Temporary local input fields for form editing inside overlays
+  const [topUpInput, setTopUpInput] = useState('');
+  const [editName, setEditName] = useState(profile.name);
+  const [editPhone, setEditPhone] = useState(profile.phone);
+  const [editMomo, setEditMomo] = useState(momoNumber);
+  const [newLabel, setNewLabel] = useState('');
+  const [newDetails, setNewDetails] = useState('');
+
+  // --- Logic Handlers ---
+  const handleTopUpSubmit = () => {
+    const amount = parseFloat(topUpInput);
+    if (!isNaN(amount) && amount > 0) {
+      axios.post(API_URL, { amount: amount })
+        .then(res => {
+          // Check for your backend response flags cleanly
+          if (res.data && res.data.success) {
+            setWalletBalance(parseFloat(res.data.wallet_balance)); 
+            setTopUpInput('');
+            setActiveOverlay(null);
+            Alert.alert("Success", `₵${amount.toFixed(2)} synchronized to database.`);
+          }
+        })
+        .catch((error) => {
+          console.log(error);
+          Alert.alert("Error", "Financial transaction rejected by server backend.");
+        });
+    } else {
+      Alert.alert("Invalid Input", "Please enter a valid amount.");
+    }
+  };
+
+  const handleSavePersonalInfo = () => {
+    setProfile(prev => ({ ...prev, name: editName, phone: editPhone }));
+    setActiveOverlay(null);
+  };
+
+  const handleSaveMomo = () => {
+    if (editMomo.trim().length >= 10) {
+      setMomoNumber(editMomo);
+      setActiveOverlay(null);
+    } else {
+      Alert.alert("Error", "Please enter a valid Mobile Money phone number.");
+    }
+  };
+
+  const handleAddAddress = () => {
+    if (newLabel.trim() && newDetails.trim()) {
+      const newAddr: Address = {
+        id: Date.now().toString(),
+        label: newLabel,
+        details: newDetails
+      };
+      setAddresses(prev => [...prev, newAddr]);
+      setNewLabel('');
+      setNewDetails('');
+    } else {
+      Alert.alert("Missing Info", "Please fill in both the location label and address details.");
+    }
+  };
+
+  const handleRateApp = () => {
+    Alert.alert(
+      "Rate ChowWallet",
+      "Enjoying your food delivery experience? Rate us!",
+      [
+        { text: "⭐", onPress: () => Alert.alert("Thank you!", "Thanks for rating us 1 star.") },
+        { text: "⭐⭐⭐", onPress: () => Alert.alert("Thank you!", "Thanks for rating us 3 stars.") },
+        { text: "⭐⭐⭐⭐⭐ Excellent", onPress: () => Alert.alert("Thank you!", "Thanks for the five-star review!") },
+        { text: "Cancel", style: "cancel" }
+      ]
+    );
+  };
+
+  // Graceful loading spinner so the app doesn't crash while talking to Django
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#D97706" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Connecting to secure vault...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Golden/Orange Header Summary */}
-      <View style={styles.topCard}>
-        <View style={styles.topRow}>
-          <View>
-            <Text style={styles.walletLabel}>Wallet Balance</Text>
-            <Text style={styles.walletBalance}>₵75.00</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        
+        {/* --- Top Orange Header Banner --- */}
+        <View style={styles.orangeHeader} />
+
+        {/* --- Wallet Balance & Quick Stats Card --- */}
+        <View style={styles.statsCard}>
+          <View style={styles.walletRow}>
+            <View>
+              <Text style={styles.walletLabel}>Wallet Balance</Text>
+              <Text style={styles.walletAmount}>₵{walletBalance.toFixed(2)}</Text>
+            </View>
+            <TouchableOpacity style={styles.topUpButton} onPress={() => setActiveOverlay('topup')}>
+              <Text style={styles.topUpText}>+ Top Up</Text>
+            </TouchableOpacity>
           </View>
-          {/* 2. TRIGGER THE MODAL ON PRESS */}
-          <TouchableOpacity style={styles.topUpBtn} onPress={() => setTopUpVisible(true)}>
-            <Text style={styles.topUpText}>+ Top Up</Text>
+
+          <View style={styles.divider} />
+
+          {/* Core Stats Matrix Layout */}
+          <View style={styles.matrixRow}>
+            <View style={styles.matrixItem}>
+              <Text style={styles.matrixIcon}>🍽️</Text>
+              <Text style={styles.matrixNumber}>12</Text>
+              <Text style={styles.matrixLabel}>Orders</Text>
+            </View>
+            <View style={styles.matrixItem}>
+              <Text style={styles.matrixIcon}>💰</Text>
+              <Text style={styles.matrixNumber}>₵8.50</Text>
+              <Text style={styles.matrixLabel}>Saved</Text>
+            </View>
+            <View style={styles.matrixItem}>
+              <Text style={styles.matrixIcon}>⭐</Text>
+              <Text style={styles.matrixNumber}>340</Text>
+              <Text style={styles.matrixLabel}>Points</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* --- ACCOUNT SECTION --- */}
+        <Text style={styles.sectionHeader}>ACCOUNT</Text>
+        <View style={styles.menuGroup}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => { setEditName(profile.name); setEditPhone(profile.phone); setActiveOverlay('personal'); }}>
+            <Text style={styles.menuIcon}>👤</Text>
+            <Text style={styles.menuText}>Personal Information</Text>
+            <Text style={styles.menuValue} numberOfLines={1}>{profile.name} &gt;</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.menuItem} onPress={() => setActiveOverlay('addresses')}>
+            <Text style={styles.menuIcon}>📍</Text>
+            <Text style={styles.menuText}>Delivery Addresses</Text>
+            <Text style={styles.menuValue}>{addresses.length} Saved &gt;</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => { setEditMomo(momoNumber); setActiveOverlay('momo'); }}>
+            <Text style={styles.menuIcon}>🏦</Text>
+            <Text style={styles.menuText}>Linked MoMo Number</Text>
+            <Text style={styles.menuValue}>
+              {momoNumber.substring(0, 4)}...{momoNumber.substring(momoNumber.length - 3)} &gt;
+            </Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.statsGrid}>
-          <View style={styles.gridItem}><Text style={styles.gridIcon}>🍴</Text><Text style={styles.gridVal}>12</Text><Text style={styles.gridSub}>Orders</Text></View>
-          <View style={styles.gridItem}><Text style={styles.gridIcon}>🛍️</Text><Text style={styles.gridVal}>₵8.50</Text><Text style={styles.gridSub}>Saved</Text></View>
-          <View style={styles.gridItem}><Text style={styles.gridIcon}>⭐</Text><Text style={styles.gridVal}>340</Text><Text style={styles.gridSub}>Points</Text></View>
-        </View>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 30 }}>
-        {/* Account Section */}
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
+        {/* --- PREFERENCES SECTION --- */}
+        <Text style={styles.sectionHeader}>PREFERENCES</Text>
         <View style={styles.menuGroup}>
-          <MenuRow icon="👤" label="Personal Information" value="Alfred Asante" />
-          <MenuRow icon="📍" label="Delivery Addresses" value="2 Saved" />
-          <MenuRow icon="🏦" label="Linked MoMo Number" value="0244...412" />
-        </View>
-
-        {/* Preferences Section */}
-        <Text style={styles.sectionLabel}>PREFERENCES</Text>
-        <View style={styles.menuGroup}>
-          <View style={styles.row}>
-            <Text style={styles.rowLeft}>🔔  Push Notifications</Text>
-            <Switch value={pushEnabled} onValueChange={setPushEnabled} trackColor={{ true: '#FF7A00' }} />
+          <View style={styles.menuItem}>
+            <Text style={styles.menuIcon}>🔔</Text>
+            <Text style={styles.menuText}>Push Notifications</Text>
+            <Switch 
+              value={pushNotifications} 
+              onValueChange={setPushNotifications}
+              trackColor={{ false: '#767577', true: '#D97706' }}
+            />
           </View>
-          <View style={styles.row}>
-            <Text style={styles.rowLeft}>🔑  Biometric Login</Text>
-            <Switch value={bioEnabled} onValueChange={setBioEnabled} trackColor={{ true: '#FF7A00' }} />
+
+          <View style={styles.menuItem}>
+            <Text style={styles.menuIcon}>🔑</Text>
+            <Text style={styles.menuText}>Biometric Login</Text>
+            <Switch 
+              value={biometricLogin} 
+              onValueChange={setBiometricLogin}
+              trackColor={{ false: '#767577', true: '#D97706' }}
+            />
           </View>
-          <MenuRow icon="🌐" label="Language" value="English" />
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => setActiveOverlay('language')}>
+            <Text style={styles.menuIcon}>🌐</Text>
+            <Text style={styles.menuText}>Language</Text>
+            <Text style={styles.menuValue}>{selectedLanguage} &gt;</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Support Section */}
-        <Text style={styles.sectionLabel}>SUPPORT</Text>
+        {/* --- SUPPORT SECTION --- */}
+        <Text style={styles.sectionHeader}>SUPPORT</Text>
         <View style={styles.menuGroup}>
-          <MenuRow icon="⚙️" label="Help & Support" />
-          <MenuRow icon="📄" label="Terms & Privacy" />
-          <MenuRow icon="⭐" label="Rate ChowWallet" />
+          <TouchableOpacity style={styles.menuItem} onPress={() => setActiveOverlay('support')}>
+            <Text style={styles.menuIcon}>⚙️</Text>
+            <Text style={styles.menuText}>Help & Support</Text>
+            <Text style={styles.menuValueText}>&gt;</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => setActiveOverlay('terms')}>
+            <Text style={styles.menuIcon}>📄</Text>
+            <Text style={styles.menuText}>Terms & Privacy</Text>
+            <Text style={styles.menuValueText}>&gt;</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={handleRateApp}>
+            <Text style={styles.menuIcon}>⭐</Text>
+            <Text style={styles.menuText}>Rate ChowWallet</Text>
+            <Text style={styles.menuValueText}>&gt;</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Sign Out Action */}
-        <TouchableOpacity style={styles.signOutButton}
-        onPress={() => router.replace('/auth/login' as any)}>
+        {/* --- Sign Out Footer --- */}
+        <TouchableOpacity style={styles.signOutButton} onPress={() => Alert.alert("Sign Out", "Are you sure you want to sign out?")}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
         <Text style={styles.versionText}>ChowWallet v2.10</Text>
       </ScrollView>
 
-      {/* ========================================================= */}
-      {/* --- POPUP 1: SELECT TOP UP AMOUNT MODAL ------------------ */}
-      {/* ========================================================= */}
-      <Modal visible={topUpVisible} transparent animationType="fade">
-        <View style={modalStyles.overlayBackground}>
-          <View style={modalStyles.whiteCard}>
-            
-            <TouchableOpacity style={modalStyles.closeButton} onPress={() => setTopUpVisible(false)}>
-              <Text style={modalStyles.closeXText}>✕</Text>
-            </TouchableOpacity>
-            
-            <Text style={modalStyles.modalHeading}>Top Up Wallet</Text>
-            <Text style={modalStyles.modalSubheading}>Select an amount to add via MoMo</Text>
-            
-            <View style={modalStyles.pillsGrid}>
-              {['₵10', '₵20', '₵50', '₵100'].map((amt) => (
-                <TouchableOpacity 
-                  key={amt} 
-                  style={[modalStyles.amtPill, selectedAmount === amt && modalStyles.selectedAmtPill]}
-                  onPress={() => setSelectedAmount(amt)}
-                >
-                  <Text style={[modalStyles.amtText, selectedAmount === amt && modalStyles.selectedAmtText]}>{amt}</Text>
-                </TouchableOpacity>
-              ))}
+      {/* --- ALL INLINE MODAL OVERLAY SCREENS --- */}
+      
+      {/* A. Top Up Wallet Popup Overlay */}
+      <Modal visible={activeOverlay === 'topup'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Top Up Wallet</Text>
+            <Text style={styles.fieldLabel}>Enter Amount (₵)</Text>
+            <TextInput
+              style={styles.formInput}
+              keyboardType="numeric"
+              placeholder="e.g. 50"
+              value={topUpInput}
+              onChangeText={setTopUpInput}
+            />
+            <View style={styles.modalButtonGroup}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveOverlay(null)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleTopUpSubmit}>
+                <Text style={styles.submitBtnText}>Add Cash</Text>
+              </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
 
-            <TouchableOpacity 
-              style={modalStyles.orangePayBtn}
-              onPress={() => {
-                setTopUpVisible(false);
-                setSuccessVisible(true);
-              }}
-            >
-              <Text style={modalStyles.orangePayBtnText}>Add {selectedAmount} via MoMo</Text>
+      {/* B. Personal Information Editing Overlay */}
+      <Modal visible={activeOverlay === 'personal'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Personal Information</Text>
+            
+            <Text style={styles.fieldLabel}>Full Name</Text>
+            <TextInput style={styles.formInput} value={editName} onChangeText={setEditName} />
+
+            <Text style={styles.fieldLabel}>Phone Number</Text>
+            <TextInput style={styles.formInput} keyboardType="phone-pad" value={editPhone} onChangeText={setEditPhone} />
+
+            <Text style={styles.fieldLabel}>Email Address</Text>
+            <TextInput style={[styles.formInput, { backgroundColor: '#F0F0F0', color: '#888' }]} value={profile.email} editable={false} />
+
+            <View style={styles.modalButtonGroup}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveOverlay(null)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSavePersonalInfo}>
+                <Text style={styles.submitBtnText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* C. Delivery Addresses Management Overlay */}
+      <Modal visible={activeOverlay === 'addresses'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
+            <Text style={styles.modalTitle}>My Addresses</Text>
+            
+            <ScrollView style={{ maxHeight: 200, marginBottom: 15 }}>
+              {addresses.map(item => (
+                <View key={item.id} style={styles.addressListItem}>
+                  <Text style={styles.addressItemLabel}>📍 {item.label}</Text>
+                  <Text style={styles.addressItemDetails}>{item.details}</Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.divider} />
+            <Text style={[styles.fieldLabel, { fontWeight: 'bold' }]}>Add New Location</Text>
+            <TextInput style={styles.formInput} placeholder="Label (e.g. Office, Gym)" value={newLabel} onChangeText={setNewLabel} />
+            <TextInput style={styles.formInput} placeholder="Full Delivery Details" value={newDetails} onChangeText={setNewDetails} />
+
+            <View style={styles.modalButtonGroup}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveOverlay(null)}>
+                <Text style={styles.cancelBtnText}>Close</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleAddAddress}>
+                <Text style={styles.submitBtnText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* D. Linked Mobile Money Number Editing Overlay */}
+      <Modal visible={activeOverlay === 'momo'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Linked MoMo Account</Text>
+            <Text style={styles.fieldLabel}>Mobile Money Number</Text>
+            <TextInput 
+              style={styles.formInput} 
+              keyboardType="phone-pad" 
+              value={editMomo} 
+              onChangeText={setEditMomo}
+              maxLength={10}
+            />
+            <Text style={{ fontSize: 11, color: '#888', marginBottom: 15 }}>
+              * Used directly for automatic deductions upon one-tap checkout verification.
+            </Text>
+            <View style={styles.modalButtonGroup}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setActiveOverlay(null)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSaveMomo}>
+                <Text style={styles.submitBtnText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* E. Language Selection Modal */}
+      <Modal visible={activeOverlay === 'language'} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Language</Text>
+            {['English', 'Twi', 'Ga', 'Ewe', 'Hausa'].map((lang) => (
+              <TouchableOpacity 
+                key={lang} 
+                style={[styles.modalOption, selectedLanguage === lang && styles.activeOption]}
+                onPress={() => {
+                  setSelectedLanguage(lang);
+                  setActiveOverlay(null);
+                }}
+              >
+                <Text style={[styles.optionText, selectedLanguage === lang && styles.activeOptionText]}>
+                  {lang}
+                </Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setActiveOverlay(null)}>
+              <Text style={styles.closeBtnText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* ========================================================= */}
-      {/* --- POPUP 2: TOP UP SUCCESS MODAL ------------------------ */}
-      {/* ========================================================= */}
-      <Modal visible={successVisible} transparent animationType="fade">
-        <View style={modalStyles.overlayBackground}>
-          <View style={[modalStyles.whiteCard, { alignItems: 'center', paddingVertical: 32 }]}>
-            
-            <View style={modalStyles.checkmarkCircle}>
-              <Text style={modalStyles.checkmarkIcon}>✓</Text>
-            </View>
-            
-            <Text style={modalStyles.successHeaderTitle}>Top Up Successful</Text>
-            <Text style={modalStyles.successBodyMessage}>{selectedAmount}.00 added to your wallet</Text>
-            
-            <TouchableOpacity style={modalStyles.doneBtn} onPress={() => setSuccessVisible(false)}>
-              <Text style={modalStyles.doneBtnText}>Done</Text>
+      {/* F. Help & Support View */}
+      <Modal visible={activeOverlay === 'support'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContentLarge}>
+            <Text style={styles.modalTitle}>Help & Support</Text>
+            <ScrollView style={{ marginVertical: 10 }}>
+              <Text style={styles.supportHeading}>📞 Live Call Support</Text>
+              <Text style={styles.supportBody}>Need instant updates on your order state? Reach us at +233 24 000 0000.</Text>
+              <Text style={styles.supportHeading}>💬 Dispatch Tickets</Text>
+              <Text style={styles.supportBody}>Open an operational support message window. Response times standard averages under 3 mins.</Text>
+            </ScrollView>
+            <TouchableOpacity style={styles.closeBtnOrange} onPress={() => setActiveOverlay(null)}>
+              <Text style={styles.closeBtnTextWhite}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* G. Terms & Privacy View */}
+      <Modal visible={activeOverlay === 'terms'} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContentLarge}>
+            <Text style={styles.modalTitle}>Terms & Privacy Policy</Text>
+            <ScrollView style={{ marginVertical: 10 }}>
+              <Text style={styles.supportHeading}>1. Financial Processing Data</Text>
+              <Text style={styles.supportBody}>ChowWallet handles network provider wallet hooks securely. Verification strings and keys remain local.</Text>
+              <Text style={styles.supportHeading}>2. Deliveries Terms</Text>
+              <Text style={styles.supportBody}>Merchant prep status relies entirely on local restaurant operating hours.</Text>
+            </ScrollView>
+            <TouchableOpacity style={styles.closeBtnOrange} onPress={() => setActiveOverlay(null)}>
+              <Text style={styles.closeBtnTextWhite}>Accept & Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -138,156 +458,266 @@ export default function ProfileScreen() {
   );
 }
 
-function MenuRow({ icon, label, value }: { icon: string; label: string; value?: string }) {
-  return (
-    <TouchableOpacity style={styles.row}>
-      <Text style={styles.rowText}>{icon}   {label}</Text>
-      <Text style={styles.rowValue}>{value ? `${value}  >` : '>'}</Text>
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9F9F9' },
-  topCard: { backgroundColor: '#FF7A00', paddingTop: 60, paddingHorizontal: 24, paddingBottom: 24, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  walletLabel: { color: '#FFECCC', fontSize: 13 },
-  walletBalance: { color: '#FFF', fontSize: 28, fontWeight: 'bold', marginTop: 4 },
-  topUpBtn: { backgroundColor: '#FFF', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  topUpText: { color: '#FF7A00', fontWeight: 'bold', fontSize: 13 },
-  statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: 12 },
-  gridItem: { alignItems: 'center', flex: 1 },
-  gridIcon: { fontSize: 16 },
-  gridVal: { color: '#FFF', fontWeight: 'bold', fontSize: 15, marginTop: 4 },
-  gridSub: { color: '#FFECCC', fontSize: 11 },
-  sectionLabel: { fontSize: 12, fontWeight: '700', color: '#71717A', marginTop: 24, marginBottom: 8, letterSpacing: 0.5 },
-  menuGroup: { backgroundColor: '#FFF', borderRadius: 16, overflow: 'hidden', paddingHorizontal: 16 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F4F4F5' },
-  rowText: { fontSize: 15, color: '#111', fontWeight: '500' },
-  rowLeft: { fontSize: 15, color: '#111', fontWeight: '500' },
-  rowValue: { fontSize: 14, color: '#A1A1AA' },
-  signOutButton: { marginTop: 30, alignItems: 'center', paddingVertical: 12 },
-  signOutText: { color: '#EF4444', fontSize: 18, fontWeight: 'bold' },
-  versionText: { color: '#A1A1AA', fontSize: 12, textAlign: 'center', marginTop: 4, marginBottom: 20 }
-});
-
-// Styles specifically for handling popup layers
-const modalStyles = StyleSheet.create({
-  overlayBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  whiteCard: {
-    width: '85%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    padding: 4,
-    zIndex: 5,
-  },
-  closeXText: {
-    fontSize: 14,
-    color: '#A1A1AA',
-    fontWeight: 'bold',
-  },
-  modalHeading: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111',
-    textAlign: 'center',
-  },
-  modalSubheading: {
-    fontSize: 13,
-    color: '#71717A',
-    textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 24,
-  },
-  pillsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  amtPill: {
-    width: '47%',
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
-    borderRadius: 14,
-    alignItems: 'center',
+  container: { flex: 1, backgroundColor: '#FAFAFA' },
+  orangeHeader: { height: 120, backgroundColor: '#D97706', width: '100%' },
+  statsCard: {
     backgroundColor: '#FFF',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: -50,
+    padding: 16, elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4
   },
-  selectedAmtPill: {
-    borderColor: '#FF7A00',
-    backgroundColor: '#FFF8F0',
+  walletRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
   },
-  amtText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1C1C1E',
+  walletLabel: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500'
   },
-  selectedAmtText: {
-    color: '#FF7A00',
-  },
-  orangePayBtn: {
-    backgroundColor: '#FF7A00',
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  orangePayBtnText: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 15,
-  },
-  checkmarkCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FF7A00',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  checkmarkIcon: {
-    color: '#FFF',
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  successHeaderTitle: {
-    fontSize: 20,
+  walletAmount: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#111',
+    marginTop: 2
   },
-  successBodyMessage: {
+  topUpButton: {
+    backgroundColor: '#D97706',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20
+  },
+  topUpText: {
+    color: '#FFF',
+    fontWeight: 'bold', fontSize: 14
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#EFEFEF',
+    marginVertical: 14
+  },
+  matrixRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center'
+  },
+  matrixItem: {
+    alignItems: 'center'
+  },
+  matrixIcon: {
+    fontSize: 20,
+    marginBottom: 4
+  },
+  matrixNumber: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#222' },
+  matrixLabel: { fontSize: 11,
+    color: '#777',
+    marginTop: 2
+  },
+  sectionHeader: { fontSize: 12,
+    fontWeight: 'bold',
+    color: '#555',
+    marginLeft: 20,
+    marginTop: 22,
+    marginBottom: 8
+  },
+  menuGroup: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginHorizontal: 16,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: '#ECECEC'
+  },
+  menuItem: {
+    flexDirection: 'row',
+    height: 48,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    justifyContent: 'space-between',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#F5F5F5'
+  },
+  menuIcon: {
+    fontSize: 16,
+    marginRight: 10,
+    width: 20,
+    textAlign: 'center'
+  },
+  menuText: {
+    flex: 1,
     fontSize: 14,
-    color: '#71717A',
-    marginTop: 6,
-    marginBottom: 28,
+    color: '#333',
+    fontWeight: '400'
   },
-  doneBtn: {
-    backgroundColor: '#FF7A00',
-    paddingHorizontal: 36,
+  menuValue: {
+    fontSize: 13,
+    color: '#888',
+    maxWidth: '40%'
+  },
+  menuValueText: {
+    fontSize: 14,
+    color: '#BBB',
+    fontWeight: 'bold'
+  },
+  signOutButton: {
+    marginTop: 30,
+    alignItems: 'center',
+    paddingVertical: 10
+  },
+  signOutText: {
+    color: 'red',
+    fontSize: 18,
+    fontWeight: 'bold'
+  },
+  versionText: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 12,
+    marginTop: 4
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    width: '90%',
+    padding: 20 },
+  modalContentLarge: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    width: '90%',
+    maxHeight: '70%',
+    padding: 20
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111',
+    marginBottom: 15,
+    textAlign: 'center'
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 6,
+    marginTop: 10
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 10,
+    width: '100%'
+  },
+  modalButtonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 15
+  },
+  cancelBtn: {
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 20,
+    marginRight: 10
   },
-  doneBtnText: {
+  cancelBtnText: {
+    color: '#666',
+    fontWeight: '600'
+  },
+  submitBtn: {
+    backgroundColor: '#D97706',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8
+  },
+  submitBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold'
+  },
+  addressListItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#EEE'
+  },
+  addressItemLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333'
+  },
+  addressItemDetails: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2
+  },
+  modalOption: {
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#EEE',
+    alignItems: 'center',
+    width: '100%'
+  },
+  activeOption: {
+    backgroundColor: '#FFF9F2'
+  },
+  optionText: {
+    fontSize: 15,
+    color: '#333'
+  },
+  activeOptionText: {
+    color: '#D97706',
+    fontWeight: 'bold'
+  },
+  closeBtn: {
+    marginTop: 15,
+    alignItems: 'center',
+    padding: 10,
+    width: '100%'
+  },
+  closeBtnText: {
+    color: '#666',
+    fontSize: 15,
+    fontWeight: '600'
+  },
+  closeBtnOrange: {
+    backgroundColor: '#D97706',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10
+  },
+  closeBtnTextWhite: {
     color: '#FFF',
     fontWeight: 'bold',
+    fontSize: 15 },
+  supportHeading: {
     fontSize: 14,
+    fontWeight: 'bold',
+    color: '#222',
+    marginTop: 12,
+    marginBottom: 4
   },
+  supportBody: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 18
+  }
 });
