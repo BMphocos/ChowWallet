@@ -2,8 +2,9 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
+from django.db import transaction
 from .models import UserProfile
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 @api_view(['GET', 'POST'])
 def profile_wallet(request):
@@ -32,15 +33,18 @@ def profile_wallet(request):
             amount = Decimal(str(amount_to_add))
             if amount <= 0:
                 return Response({'error': 'Top up amount must be greater than zero'}, status=status.HTTP_400_BAD_REQUEST)
-                
-            # Increment the wallet balance value safely
-            profile.wallet_balance += amount
-            profile.save()
+
+            # Lock the row and increment atomically so concurrent top-ups
+            # can't race and overwrite each other's balance update.
+            with transaction.atomic():
+                profile = UserProfile.objects.select_for_update().get(pk=profile.pk)
+                profile.wallet_balance += amount
+                profile.save()
             
             return Response({
                 'success': True,
                 'wallet_balance': float(profile.wallet_balance)
             }, status=status.HTTP_200_OK)
             
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, InvalidOperation):
             return Response({'error': 'Invalid numeric amount format'}, status=status.HTTP_400_BAD_REQUEST)

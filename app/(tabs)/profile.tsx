@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Fixed spacing here
+import React, { useState, useCallback } from 'react'; // Fixed spacing here
 import { 
   View, 
   Text, 
@@ -12,6 +12,7 @@ import {
   ActivityIndicator // Added to handle the loading state gracefully
 } from 'react-native';
 import axios from 'axios';
+import { useFocusEffect } from '@react-navigation/native';
 
 // --- TypeScript Interfaces for Core Profile States ---
 interface UserProfile {
@@ -34,9 +35,15 @@ export default function ProfileScreen() {
   const [walletBalance, setWalletBalance] = useState<number>(0.00);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    fetchBackendData();
-  }, []);
+  // Fetches on initial mount AND every time this tab regains focus, so a
+  // top-up made on another tab (e.g. Index) is reflected here too, instead
+  // of only showing whatever balance was fetched the first time this
+  // screen mounted.
+  useFocusEffect(
+    useCallback(() => {
+      fetchBackendData();
+    }, [])
+  );
 
   const fetchBackendData = () => {
     axios.get(API_URL)

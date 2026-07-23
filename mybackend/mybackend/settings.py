@@ -10,20 +10,28 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-pj7%_t^z53kh8uqs#95#@%n6cc#wv7vbcm6izxp!v1l^ao*c3#"
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-pj7%_t^z53kh8uqs#95#@%n6cc#wv7vbcm6izxp!v1l^ao*c3#",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = ['192.168.100.11', '127.0.0.1', 'localhost']
 
@@ -39,7 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
-    "mybackend"
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -55,7 +63,7 @@ MIDDLEWARE = [
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-CORS_ALLOWED_ORIGIN = [
+CORS_ALLOWED_ORIGINS = [
     "http://localhost:8081",
     "http://localhost:19000",
 ]
@@ -86,11 +94,11 @@ WSGI_APPLICATION = "mybackend.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME":"ChowWalletdb",
-        "USER":"postgres",
-        "PASSWORD":"Phocos1$",
-        "HOST":"localhost",
-        "PORT":"5432"
+        "NAME": os.environ.get("DB_NAME", "ChowWalletdb"),
+        "USER": os.environ.get("DB_USER", "postgres"),
+        "PASSWORD": os.environ.get("DB_PASSWORD", "Phocos1$"),
+        "HOST": os.environ.get("DB_HOST", "localhost"),
+        "PORT": os.environ.get("DB_PORT", "5432"),
     }
 }
 

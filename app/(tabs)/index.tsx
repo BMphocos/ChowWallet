@@ -1,5 +1,5 @@
 // app/index.tsx
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useCallback } from 'react'; 
 import { 
   View, 
   Text, 
@@ -14,6 +14,7 @@ import {
 import { styles } from './homeStyles';
 import { router } from 'expo-router';
 import axios from 'axios';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 const API_URL = 'http://192.168.100.11:8000/api/profile/';
@@ -26,10 +27,13 @@ export default function Page() {
   const [activeOverlay, setActiveOverlay] = useState<'topup' | null>(null);
   const [topUpInput, setTopUpInput] = useState('');
 
-  // 1. Fetch live profile balance from the vault on mount
-  useEffect(() => {
-    fetchWalletBalance();
-  }, []);
+  // Fetches on initial mount AND every time this tab regains focus, so a
+  // top-up made on another tab (e.g. Profile) is reflected here too.
+  useFocusEffect(
+    useCallback(() => {
+      fetchWalletBalance();
+    }, [])
+  );
 
   const fetchWalletBalance = () => {
     axios.get(API_URL)

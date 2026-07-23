@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  View, 
+  View,
   Text, 
   StyleSheet, 
   TextInput, 
   ScrollView, 
-  Image, 
   TouchableOpacity, 
   Modal 
 } from 'react-native';
